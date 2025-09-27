@@ -65,6 +65,10 @@ namespace AnalizadorPascal
             "Multiplicacion", "Division", "Igual", "Menor que", "Mayor que", "Var", "Keywords", "Tabulacion", 
             "Salto de Linea", "Error Lexico", "Error Ahhh"
             ];
+        private List<string> orden = [
+            "program", "$Espacio", "$Var", "$Punto y Coma", "$Salto de Linea", "begin", "$Salto de Linea",
+            "end", "$Punto"
+            ];
         private List<string> keywords = [
             "and", "case", "file", "label", "packed", "then", "array", "const",
             "for", "library", "procedure", "to", "asm", "constructor", "forward",
@@ -78,6 +82,7 @@ namespace AnalizadorPascal
         private int[] lineAuto; 
         private string palabra; 
         private int j;
+        private bool isCorrect = true;
 
         public Analizador(string codePascal)
         {
@@ -128,6 +133,7 @@ namespace AnalizadorPascal
 
             Console.WriteLine($"--{palabra}--");
 
+
             /*
                         lineAuto = Automatas[0];
                         if (j == i)
@@ -146,6 +152,7 @@ namespace AnalizadorPascal
             var list = new List<DatoTabla>();
             int index = 0;
             Console.WriteLine(CodePascal.Count());
+            isCorrect = true;
             for ( int i = 0; i< CodePascal.Count(); i++)
             {
                 string item = CodePascal.Substring(i,1) ;
@@ -312,6 +319,7 @@ namespace AnalizadorPascal
                     reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.ERROR_a)] });
                     palabra = "";
+                    isCorrect = false;
                     continue;
                 }
                 else if (index == 31)
@@ -319,12 +327,47 @@ namespace AnalizadorPascal
                     reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.ERROR_b)] });
                     palabra = "";
+                    isCorrect = false;
                     continue;
                 }
                 
                 
 
             }
+            j = 0;
+
+            foreach(var item in orden)
+            {
+                for(int i = j;i<list.Count(); i++)
+                {
+                    if (item[0] == '$')
+                    {
+                        if (item[1] == '$')
+                        {
+
+                            j = i+1;
+                            continue;
+                        }
+                        if (item == list[i].tokens)
+                        {
+                            j = i+1;
+                            continue;
+                        }
+
+                    }
+                    else
+                    {
+                        if(item == list[i].caracter)
+                        {
+                            j = i + 1;
+                            continue;
+                        }  
+                    }
+
+                    isCorrect = false;
+                }
+            }
+            Console.WriteLine(isCorrect);
             return list;
         }
     }
