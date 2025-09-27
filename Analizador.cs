@@ -3,6 +3,7 @@ using System;
 using System.Data;
 using System.Diagnostics;
 using System.Dynamic;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace AnalizadorPascal
@@ -15,8 +16,8 @@ namespace AnalizadorPascal
     }
     public class Analizador
     {
-        public string CodePascal { get; set; }
-        public int[][] Automatas = 
+        private string CodePascal { get; set; }
+        private int[][] Automatas = 
         [
             [1, 6, 25, 25, 28, 31, 9, 22, 11, 12, 3, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 29, 30, 31],
             [1, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
@@ -51,20 +52,20 @@ namespace AnalizadorPascal
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31]
         ];
-        public List<string> alfabeto = [
+        private List<string> alfabeto = [
             @"[0-9]", @"'", @"[A-Z]", @"[a-z]", @" ", @"_", @":", @"=", @";", @",",
             @"\.", @"\(", @"\)", @"\[", @"\]", @"\+", @"\-", @"\*", @"/", @"<", @">",
             $@"{(char)9}", $@"{(char)13}"
             ];
-        enum tipo { Num, Lit, Esp, GnBajo, Asig, PC, C, P, PI, PF, CA, CC, Sum, Menos, Mul, Div, Igual, Me, Ma, Var, Key, Tab,SL, ERROR_a, ERROR_b };
+        private enum tipo { Num, Lit, Esp, GnBajo, Asig, PC, C, P, PI, PF, CA, CC, Sum, Menos, Mul, Div, Igual, Me, Ma, Var, Key, Tab,SL, ERROR_a, ERROR_b };
 
-        public List<string> tt = [
+        private List<string> tt = [
             "Numero", "Literales", "Espacio", "Guion bajo", "Asignacion", "Punto y Coma", "Coma", "Punto", 
             "Parentesis Inicio", "Parentesis Cerrado", "Corchete Abierto", "Corchete Cerrado", "Suma", "Menos", 
             "Multiplicacion", "Division", "Igual", "Menor que", "Mayor que", "Var", "Keywords", "Tabulacion", 
             "Salto de Linea", "Error Lexico", "Error Ahhh"
             ];
-        public List<string> keywords = [
+        private List<string> keywords = [
             "and", "case", "file", "label", "packed", "then", "array", "const",
             "for", "library", "procedure", "to", "asm", "constructor", "forward",
             "mod", "program", "type", "begin", "destructor", "function", "nil",
@@ -72,15 +73,22 @@ namespace AnalizadorPascal
             "do", "if", "object", "set", "uses", "downto", "implementation",
             "of", "shl", "var", "else", "in", "on", "shr", "while", "end",
             "inherited", "or", "string", "with", "exports", "inline", "xor",
-            "interface", "interrupt", "is"
+            "interface", "interrupt", "is", "writeln", "write"
             ];
+        private int[] lineAuto; 
+        private string palabra; 
+        private int j;
+
         public Analizador(string codePascal)
         {
-            CodePascal = codePascal;
-        }
-        public async Task<int> GetIndex(string item)
-        {
+            CodePascal = codePascal+ $"{(char)13}";
 
+            lineAuto = Automatas[0];
+            palabra = "";
+            j = -1;
+        }
+        public int GetIndex(string item)
+        {
             foreach (var fil in alfabeto.Select((C, i) => new { C, i }))
             {
                 if (Regex.IsMatch(item, fil.C))
@@ -92,182 +100,229 @@ namespace AnalizadorPascal
             }
             return alfabeto.Count()-1;
         }
-        public void reload(ref int[]? lineAuto, ref int j, ref int i, ref string palabra, ref string item)
+        public void reload(ref int i, ref string item,  bool isretry = false)
         {
+            
+            Console.WriteLine($"<--{j}   {i}-->");
             lineAuto = Automatas[0];
-            if (j != i)
+            if(j != i)
             {
-                j = i;
-                --i;
-                palabra = "";
+                if (isretry)
+                {
+                    j = i;
+
+                    palabra = palabra.Substring(0, palabra.Length - 1);
+                    --i;
+                }
+                else
+                {
+                    j = i;
+
+                }
             }
             else
             {
-                palabra = item;
+
+                j = i;
             }
+
+            Console.WriteLine($"--{palabra}--");
+
+            /*
+                        lineAuto = Automatas[0];
+                        if (j == i)
+                        {
+                            palabra = "";
+
+                        }
+                        else
+                        {
+                            
+
+                        }*/
         }
         public async Task<List<DatoTabla>> GetGeneratorDataT()
         {
             var list = new List<DatoTabla>();
             int index = 0;
-            var lineAuto = Automatas[index];
-            string palabra = "";
-            int j = 0;
+            Console.WriteLine(CodePascal.Count());
             for ( int i = 0; i< CodePascal.Count(); i++)
             {
                 string item = CodePascal.Substring(i,1) ;
-                if (await GetIndex(item) >= lineAuto.Count())
-                {
-                    Debug.WriteLine("line " + lineAuto.Length + " " + alfabeto.Count() + " " + item);
-                }
-                index = lineAuto[await GetIndex(item)];
-                Console.WriteLine("tokens " + index + "  " + string.Join(",", lineAuto) + " " + Automatas.Count() + " " + item + " " + await GetIndex(item));
+
+                index = lineAuto[GetIndex(item)];
+                Console.WriteLine($"tokens{i} " + index + "  " + string.Join(",", lineAuto) + " " + Automatas.Count() + " " + item + " " + GetIndex(item));
                 lineAuto = Automatas[index];
+
+                palabra += item.ToString();
                 if (index == 4)
                 {
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Num)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 } 
                 else if (index == 8)
                 {//literales
-                    list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Lit)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    reload(ref i, ref item);
+                    list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Lit)]});
+                    palabra = "";
+
                     continue;
                 }
                 else if (index == 10)
                 {// asignacion
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Asig)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 11)
                 {//punto y goma
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.PC)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 12)
                 {//goma
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.C)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 13)
-                {//
-                 //
+                {//punto
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.P)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 14)
                 {//parenteris Inicio
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.PI)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 15)
                 {//parenteris Final
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.PF)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 16)
                 {//Corchete Inicio
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.CA)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 17)
                 {//Corchete Final
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.CC)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 18)
                 {//mas
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Sum)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 19)
                 {//menos
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Menos)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 20)
                 {//mul
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Mul)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 21)
                 {//div
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Div)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 22)
                 {//igual
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Igual)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 23)
                 {//menorq
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Me)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 24)
                 {//mayorq
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Ma)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 27)
                 {//id o reserv
-                    
+                    reload(ref i, ref item, true);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, 
                         tipo = tt[((int)(keywords.Contains(palabra) ? tipo.Key : tipo.Var))] });
+                    palabra = "";
 
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
                     continue;
                 }
                 else if (index == 28)
                 {//espacio
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Esp)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
+
                     continue;
                 }
                 else if (index == 29)
                 {//tab
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Tab)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
+
                     continue;
                 }
                 else if (index == 30)
                 {//return
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.SL)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 5)
                 {//error lexico
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.ERROR_a)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
                 else if (index == 31)
                 {//error de 404
+                    reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.ERROR_b)] });
-                    reload(ref lineAuto, ref j, ref i, ref palabra, ref item);
+                    palabra = "";
                     continue;
                 }
-                else {
-                    palabra += item.ToString();
-                }
+                
+                
 
             }
             return list;
