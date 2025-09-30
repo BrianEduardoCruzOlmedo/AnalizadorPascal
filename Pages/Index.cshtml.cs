@@ -24,7 +24,7 @@ namespace AnalizadorPascal.Pages
 
         public string StatusMessage { get; set; }
         public List<DatoTabla> DataT { get; set; }
-
+        public string Info {  get; set; }
 
         public IndexModel(ILogger<IndexModel> logger, IWebHostEnvironment webHostEnvironment)
         {
@@ -44,6 +44,12 @@ namespace AnalizadorPascal.Pages
             {
                 DataT = JsonSerializer.Deserialize<List<DatoTabla>>(TempData["DataT"] as string);
             }
+
+            if (TempData.ContainsKey("Info"))
+            {
+                Info = (string)TempData["Info"];
+            }
+        
         }
         public async Task<IActionResult> OnPostSubirArchivoAsync()
         {
@@ -99,6 +105,8 @@ namespace AnalizadorPascal.Pages
             //  Debug.WriteLine("- " + JsonSerializer.Serialize(ana.GetGeneratorDataT()) + " -");
             TempData["CodePascal"] = PascalCode;
             TempData["DataT"] = JsonSerializer.Serialize(await ana.GetGeneratorDataT());
+            TempData["Info"] = ($@"El programa esta {(ana.isCorrectWrite ? "bien" : "mal") } escrito y 
+                                    esta {(ana.isCorrectOrden ? "bien" : "mal")} ordenado");
             //TempData[""] = JsonSerializer.Serialize(DataT).ToString()
             return RedirectToPage("Index");
         }

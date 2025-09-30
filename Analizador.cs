@@ -62,11 +62,24 @@ namespace AnalizadorPascal
         private List<string> tt = [
             "Numero", "Literales", "Espacio", "Guion bajo", "Asignacion", "Punto y Coma", "Coma", "Punto", 
             "Parentesis Inicio", "Parentesis Cerrado", "Corchete Abierto", "Corchete Cerrado", "Suma", "Menos", 
-            "Multiplicacion", "Division", "Igual", "Menor que", "Mayor que", "Var", "Keywords", "Tabulacion", 
+            "Multiplicacion", "Division", "Igual", "Menor que", "Mayor que", "Identificador", "Keywords", "Tabulacion", 
             "Salto de Linea", "Error Lexico", "Error Ahhh"
             ];
+       
+
+        private int[][] AutomataOrdenProgram =
+        [
+            [1,-1,-1,-1,-1,-1,-1,-1,-1],
+            [-1,1,2,-1,-1,-1,-1,-1,-1],
+            [-1,2,-1,3,-1,-1,-1,-1,-1],
+            [-1,3,-1,4,4,-1,-1,-1,-1],
+            [-1,4,-1,5,4,5,-1,-1,-1],
+            [-1,5,-1,6,5,-1,5,6,-1],
+            [-1,6,-1,7,6,-1,-1,-1,7]
+        ];
+
         private List<string> orden = [
-            "program", "$Espacio", "$Var", "$Punto y Coma", "$Salto de Linea", "begin", "$Salto de Linea",
+            "program", "$Espacio", "$Identificador", "$Punto y Coma", "$Salto de Linea", "begin", "$$",
             "end", "$Punto"
             ];
         private List<string> keywords = [
@@ -82,7 +95,8 @@ namespace AnalizadorPascal
         private int[] lineAuto; 
         private string palabra; 
         private int j;
-        private bool isCorrect = true;
+        public bool isCorrectWrite = true;
+        public bool isCorrectOrden = true;
 
         public Analizador(string codePascal)
         {
@@ -104,6 +118,32 @@ namespace AnalizadorPascal
                 }
             }
             return alfabeto.Count()-1;
+        }
+        public int GetIndexM(DatoTabla item)
+        {
+            foreach (var fil in orden.Select((C, i) => new { C, i }))
+            {
+                if(item.caracter == "end") Console.Write($"fil = {fil.C}; itemc = {item.caracter}, itemt {item.tipo} \t");
+
+                if (fil.C == item.caracter)
+                {
+                    return fil.i;
+                }
+                if (fil.C[0] == '$')
+                {
+                    if(fil.C.Substring(1, fil.C.Length -1) == item.tipo)
+                    {
+                        return fil.i;
+                    }
+                    if (fil.C[1] == '$')
+                    {
+                        if (!new List<string> { "program", "begin", "end" }.Contains(item.caracter))
+                        return fil.i;
+                        
+                    }
+                }
+            }
+            return -1;
         }
         public void reload(ref int i, ref string item,  bool isretry = false)
         {
@@ -151,8 +191,8 @@ namespace AnalizadorPascal
         {
             var list = new List<DatoTabla>();
             int index = 0;
+            isCorrectWrite = true;
             Console.WriteLine(CodePascal.Count());
-            isCorrect = true;
             for ( int i = 0; i< CodePascal.Count(); i++)
             {
                 string item = CodePascal.Substring(i,1) ;
@@ -319,7 +359,7 @@ namespace AnalizadorPascal
                     reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.ERROR_a)] });
                     palabra = "";
-                    isCorrect = false;
+                    isCorrectWrite = false;
                     continue;
                 }
                 else if (index == 31)
@@ -327,47 +367,42 @@ namespace AnalizadorPascal
                     reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.ERROR_b)] });
                     palabra = "";
-                    isCorrect = false;
+                    isCorrectWrite = false;
                     continue;
                 }
                 
                 
 
             }
+            
+            
+            
             j = 0;
-
-            foreach(var item in orden)
+            index = 0;
+            var line = AutomataOrdenProgram[j];
+            isCorrectOrden = false;
+            foreach (var item in list)
             {
-                for(int i = j;i<list.Count(); i++)
+                j = GetIndexM(item);
+                if (j == 7) { isCorrectOrden = true; break; }
+                Console.Write($"line = {string.Join(",", line)}; item = {orden[j]}, j = {j}; {item.caracter}  ");
+
+                if (j == -1)
                 {
-                    if (item[0] == '$')
-                    {
-                        if (item[1] == '$')
-                        {
-
-                            j = i+1;
-                            continue;
-                        }
-                        if (item == list[i].tokens)
-                        {
-                            j = i+1;
-                            continue;
-                        }
-
-                    }
-                    else
-                    {
-                        if(item == list[i].caracter)
-                        {
-                            j = i + 1;
-                            continue;
-                        }  
-                    }
-
-                    isCorrect = false;
+                    break;
                 }
+                index = line[j];
+
+                Console.WriteLine(index);
+                if (index == -1)
+                {
+                    break;
+                }
+                
+                line = AutomataOrdenProgram[index];
             }
-            Console.WriteLine(isCorrect);
+            
+            Console.WriteLine(isCorrectOrden);
             return list;
         }
     }
