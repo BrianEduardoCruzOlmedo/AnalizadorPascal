@@ -59,7 +59,6 @@ namespace AnalizadorPascal.Pages
                 return Page();
             }
 
-            // Validación del tipo de archivo
             var fileExtension = Path.GetExtension(UploadedFile.FileName).ToLowerInvariant();
             if (fileExtension != ".pas")
             {

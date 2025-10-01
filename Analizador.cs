@@ -20,7 +20,7 @@ namespace AnalizadorPascal
         private int[][] Automatas = 
         [
             [1, 6, 25, 25, 28, 31, 9, 22, 11, 12, 3, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 29, 30, 31],
-            [1, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+            [1, 5, 5, 5, 4, 5, 5, 5, 5, 5, 2, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
             [2, 5, 5, 5, 5, 5, 5, 5, 4, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 31],
             [2, 5, 5, 5, 13, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 13, 13, 5],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -187,10 +187,14 @@ namespace AnalizadorPascal
 
                         }*/
         }
-        public async Task<List<DatoTabla>> GetGeneratorDataT()
+        public async Task<List<DatoTabla>> GetGeneratorDataT(string codePas = null)
         {
             var list = new List<DatoTabla>();
             int index = 0;
+
+            if(codePas != null) CodePascal = codePas + $"{(char)13}";
+
+
             isCorrectWrite = true;
             Console.WriteLine(CodePascal.Count());
             for ( int i = 0; i< CodePascal.Count(); i++)
