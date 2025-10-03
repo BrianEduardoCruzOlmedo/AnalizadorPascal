@@ -25,6 +25,7 @@ namespace AnalizadorPascal.Pages
         public string StatusMessage { get; set; }
         public List<DatoTabla> DataT { get; set; }
         public string Info {  get; set; }
+        public string Meme { get; set; }
 
         public IndexModel(ILogger<IndexModel> logger, IWebHostEnvironment webHostEnvironment)
         {
@@ -49,7 +50,11 @@ namespace AnalizadorPascal.Pages
             {
                 Info = (string)TempData["Info"];
             }
-        
+            if (TempData.ContainsKey("Meme"))
+            {
+                Meme = (string)TempData["Meme"];
+            }
+
         }
         public async Task<IActionResult> OnPostSubirArchivoAsync()
         {
@@ -86,7 +91,10 @@ namespace AnalizadorPascal.Pages
 
             return RedirectToPage("Index");
         }
-
+        public List<string> urlImage = [
+            "/css/image/state1.png" , "/css/image/state2.png" , "/css/image/state3.png" , "/css/image/state4.png" ,
+        "/css/image/state5.png" , "/css/image/state6.png" , "/css/image/state7.png" , "/css/image/state8.png" ,
+        "/css/image/state9.png" ];
 
         public async Task<IActionResult> OnPostGenerarAsync()
         {
@@ -104,9 +112,25 @@ namespace AnalizadorPascal.Pages
             //  Debug.WriteLine("- " + JsonSerializer.Serialize(ana.GetGeneratorDataT()) + " -");
             TempData["CodePascal"] = PascalCode;
             TempData["DataT"] = JsonSerializer.Serialize(await ana.GetGeneratorDataT());
-            TempData["Info"] = ($@"El programa esta {(ana.isCorrectWrite ? "bien" : "mal") } escrito y 
+            TempData["Info"] = ($@"El programa esta {(ana.isCorrectWrite ? "bien" : "mal")} escrito y 
                                     esta {(ana.isCorrectOrden ? "bien" : "mal")} ordenado");
             //TempData[""] = JsonSerializer.Serialize(DataT).ToString()
+            int NErrores = ana.list.Where(t => t.tipo == "Error Lexico" || t.tipo == "Error Ahhh").Count();
+            int indexi = (int)Math.Ceiling(NErrores / 3.0) >= urlImage.Count() ? urlImage.Count()-1 : (int)Math.Ceiling(NErrores / 3.0);
+            string textcode = string.Join("", ana.list.Select((t) => 
+            (t.tokens == "40" ? "<br />" : 
+                (t.tokens == "45" || t.tokens == "15" ? $"<label  style=\"background-color:red\">{t.caracter}</label>" : 
+                    t.caracter))
+            ));
+           
+            TempData["Meme"] = $@"
+                    <img src=""{urlImage[indexi]}"" style=""width:50%""/>
+                    <br />
+                <p>{NErrores} error{(NErrores!=1 ? "es" : "")} lexico{(NErrores != 1 ? "s" : "")}</p>
+                <br />
+                <h3>Codigo:</h3>
+                <p class=""text-start"">{textcode}</p>
+                ";
             return RedirectToPage("Index");
         }
 

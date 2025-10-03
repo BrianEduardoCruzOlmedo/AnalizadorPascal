@@ -7,25 +7,35 @@
 <div class="text-center">
     <h1 class="display-4">Carga o escribe tu archivo pascal</h1>
     <br />
-    <fieldset>
-        <!--<legend>Inserta el texto</legend>-->
-        
-        <form method="post" enctype="multipart/form-data">
-            <input type="file" asp-for="UploadedFile" />
-            <button type="submit" asp-page-handler="SubirArchivo" class="btn btn-primary">Subir Archivo</button>
+    <div class="container text-center">
+        <div class="row">
+            <div class="col-7">
+                <fieldset>
+                    <!--<legend>Inserta el texto</legend>-->
 
-            <br />
-            @if (!string.IsNullOrEmpty(Model.StatusMessage))
-            {
-                <span class="text-info">@Model.StatusMessage</span>
-            }
-            <hr />
+                    <form method="post" enctype="multipart/form-data">
+                        <input type="file" asp-for="UploadedFile" />
+                        <button type="submit" asp-page-handler="SubirArchivo" class="btn btn-primary">Subir Archivo</button>
 
-            <textarea asp-for="PascalCode" class="form-control" rows="10"></textarea>
+                        <br />
+                        @if (!string.IsNullOrEmpty(Model.StatusMessage))
+                        {
+                            <span class="text-info">@Model.StatusMessage</span>
+                        }
+                        <hr />
 
-            <button type="submit" asp-page-handler="Generar">Listo</button>
-        </form>
-    </fieldset>
+                        <textarea asp-for="PascalCode" class="form-control" rows="10"></textarea>
+
+                        <button type="submit" asp-page-handler="Generar">Listo</button>
+                    </form>
+                </fieldset>
+            </div>
+            <div class="col">
+                @Html.Raw(Model.Meme)
+            </div>
+        </div>
+    </div>
+    
     <br />
     @if (Model.DataT != null && Model.DataT.Any())
     {
