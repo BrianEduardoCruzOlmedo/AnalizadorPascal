@@ -8,6 +8,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace AnalizadorPascal
 {
@@ -141,7 +142,7 @@ namespace AnalizadorPascal
 
         private List<string> orden = [
             "uses", "$Espacio", "$Salto de Linea", "$Identificador",
-            "$Coma", "$Punto y Coma", "program", "var", "2 puntos", "Tipo",
+            "$Coma", "$Punto y Coma", "program", "var", "$2 puntos", "Tipo",
             "begin", "$Asignacion", "valor", "write", "writeln", "(", ")",
             "end", "$Punto", "$$"
             ];
@@ -203,19 +204,38 @@ namespace AnalizadorPascal
             };
         
         }
-        public int GetIndexM(DatoTabla item)
+        public Dictionary<string, string> variables = new Dictionary<string, string>();
+        public async Task<int> GetIndexM(DatoTabla item)
         {
             foreach (var fil in orden.Select((C, i) => new { C, i }))
             {
                // if(item.caracter == "end") Console.Write($"fil = {fil.C}; itemc = {item.caracter}, itemt {item.tipo} \t");
+                if(fil.C == "Tipo")
+                {
+                    if (new List<String> {  "Integer", "Real", "String", "Char", "Boolean" }.Contains(item.caracter))
+                    {
 
+                        await Asignartipo(list.IndexOf(item),item.caracter);
+                        return fil.i;
+                    }
+                }
                 if(fil.C == "valor")
                 {
                     if (tt.Where((t, i) => i < 3).ToList().Contains(item.tipo))
                     {
-                        return fil.i;
+                        if( asignarvalor(list.IndexOf(item), item))
+                        {
+                            return fil.i;
+
+                        }
+                        else if (isWrite(list.IndexOf(item))) {
+
+                            return fil.i;
+                        }
+
                     }
                 }
+                
                 if (fil.C == item.caracter)
                 {
                     return fil.i ;
@@ -237,6 +257,62 @@ namespace AnalizadorPascal
             }
             return -1;
         }
+
+        private bool asignarvalor(int v, DatoTabla caracter)
+        {
+            for (int i = v-1; i >= v - 6; i--)
+            {
+                var item = list[i];
+                if (item.tipo.Contains( "Identificador"))
+                {
+                    if (variables.ContainsKey(item.caracter))
+                    {
+                        var tipoesp = variables[item.caracter];
+                        var tipoin = caracter.tipo switch
+                        {
+                            "Numero Entero" => "Integer",
+                            "Numero Real" => "Real",
+                            "Literales" => "String",
+                            _ => default,
+                        };
+                        if (tipoesp != null)
+                        {
+                            return tipoin == tipoesp;
+                            break;
+                        }
+                    }
+                    
+                }
+            }
+            return false;
+        }
+
+        private bool isWrite(int v)
+        {
+            for (int i = v-1; i >= v-3; i--)
+            {
+                var item = list[i];
+                if (item.caracter == "(")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private async Task Asignartipo(int v, string caracter)
+        {
+            for(int i = v-1; i >= 0; i--)
+            {
+                var item = list[i];
+                if(item.tipo == "Identificador")
+                {
+                    variables[item.caracter] = caracter;
+                    break;
+                }
+            }
+        }
+
         public void reload(ref int i, ref string item,  bool isretry = false)
         {
             
@@ -258,6 +334,7 @@ namespace AnalizadorPascal
         public async Task<List<DatoTabla>> GetGeneratorDataT(string codePas = null)
         {
             list = new List<DatoTabla>();
+            variables = new Dictionary<string, string>();
             int index = 0;
             if (codePas != null) CodePascal = codePas + $"{(char)13}";
 
@@ -486,7 +563,7 @@ namespace AnalizadorPascal
             isCorrectOrden = false;
             foreach (var item in list)
             {
-                lastPosition = GetIndexM(item);
+                lastPosition = await GetIndexM(item);
                 Console.Write($"line = {string.Join(",", line)}; item = {orden[lastPosition]}, j = {lastPosition}; {item.caracter} ");
 
 
