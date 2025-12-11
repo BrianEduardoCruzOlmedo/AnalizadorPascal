@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Dynamic;
@@ -8,6 +9,8 @@ using System.Text.RegularExpressions;
 
 namespace AnalizadorPascal
 {
+    public enum tipo { NumE, NumR, Lit, Esp, GnBajo, Asig, PC, C, P, PI, PF, CA, CC, Sum, Menos, Mul, Div, ComSL, ComMl, Igual, Me, Ma, Var, Key, Tab, SL, ERROR_a, ERROR_b };
+
     public class DatoTabla
     {
         public string tokens { get; set; }
@@ -17,9 +20,10 @@ namespace AnalizadorPascal
     public class Analizador
     {
         private string CodePascal { get; set; }
-        private int[][] Automatas = 
+        private int[][] Automatas =
         [
-           [1,8,35,35,38,35,11,32,13,14,5,16,17,18,19,20,21,31,22,33,34,39,40,45],
+            // 0=Digito, 1=Comilla, 2=Mayus, 3=Minus, 4=Espacio, 5=G.Bajo, 6=':', 7='=', 8=';', 9=',', 10='.', 11='(', 12=')', 13='[', 14=']', 15='+', 16='-', 17='*', 18='/', 19='<', 20='>', 21='Tab', 22='SL/CR', 23=Otro
+            [1,8,35,35,38,35,11,32,13,14,5,16,17,18,19,20,21,31,22,33,34,39,40,45],
             [1,15,15,15,2,15,15,15,2,15,3,2,2,2,2,2,2,2,2,2,2,2,2,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
             [3,15,15,15,4,15,15,15,4,15,15,4,4,4,4,4,4,4,4,4,4,4,4,45],
@@ -30,7 +34,7 @@ namespace AnalizadorPascal
             [9,10,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,15,45],
             [9,10,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,15,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
-            [15,15,15,15,15,15,15,12,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,45],
+            [0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
@@ -54,7 +58,7 @@ namespace AnalizadorPascal
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
-            [36,37,36,36,27,36,37,15,37,37, 37, 37,37,37,37,37,37,37,37,37,37,37,37,45],
+            [36,37,36,36,37,36,37,15,37,37, 37, 37,37,37,37,37,37,37,37,37,37,37,37,45],
             [36,37,36,36,37,36,37,15,37,37, 37, 37,37,37,37,37,37,37,37,37,37,37,37,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
@@ -65,31 +69,48 @@ namespace AnalizadorPascal
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
             [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-
-
         ];
         private List<string> alfabeto = [
-            @"[0-9]", @"'", @"[A-Z]", @"[a-z]", @" ", @"_", @":", @"=", @";", @",",
-            @"\.", @"\(", @"\)", @"\[", @"\]", @"\+", @"\-", @"\*", @"\/", @"<", @">",
-            $@"{(char)9}", $@"{(char)13}"
-            ];
-        private enum tipo { NumE, NumR, Lit, Esp, GnBajo, Asig, PC, C, P, PI, PF, CA, CC, Sum, Menos, Mul, Div, ComSL, ComMl, Igual, Me, Ma, Var, Key, Tab,SL, ERROR_a, ERROR_b };
+            @"^[0-9]$",                    // 0: Dígitos
+            @"^'$",                        // 1: Comilla simple
+            @"^[A-Z]$",                    // 2: Letras mayúsculas
+            @"^[a-z]$",                    // 3: Letras minúsculas
+            @"^ $",                        // 4: Espacio
+            @"^_$",                        // 5: Guion bajo
+            @"^:$",                        // 6: Dos puntos
+            @"^=$",                        // 7: Igual
+            @"^;$",                        // 8: Punto y coma
+            @"^,$",                        // 9: Coma
+            @"^\.$",                       // 10: Punto (escapado)
+            @"^\($",                       // 11: Paréntesis izquierdo (escapado)
+            @"^\)$",                       // 12: Paréntesis derecho (escapado)
+            @"^\[$",                       // 13: Corchete izquierdo (escapado)
+            @"^\]$",                       // 14: Corchete derecho (escapado)
+            @"^\+$",                       // 15: Suma (escapado)
+            @"^-$",                        // 16: Menos/resta
+            @"^\*$",                       // 17: Multiplicación (escapado)
+            @"^/$",                        // 18: División (NO escapado, no es necesario)
+            @"^<$",                        // 19: Menor que
+            @"^>$",                        // 20: Mayor que
+            @$"^{(char)9}$",                       // 21: Tabulación (usando \t)
+            @$"^{(char)10}$",                       // 23: Salto de línea (agregado)
+        ];
 
         private List<string> tt = [
-            "Numero Entero", "Numero Real", "Literales", "Espacio", "Guion bajo", "Asignacion", "Punto y Coma", "Coma", "Punto", 
-            "Parentesis Inicio", "Parentesis Cerrado", "Corchete Abierto", "Corchete Cerrado", "Suma", "Menos", 
-            "Multiplicacion", "Division", "Comentario SL", "Comentario ML", "Igual", "Menor que", "Mayor que", "Identificador", "Keywords", "Tabulacion", 
+            "Numero Entero", "Numero Real", "Literales", "Espacio", "Guion bajo", "Asignacion", "Punto y Coma", "Coma", "Punto",
+            "Parentesis Inicio", "Parentesis Cerrado", "Corchete Abierto", "Corchete Cerrado", "Suma", "Menos",
+            "Multiplicacion", "Division", "Comentario SL", "Comentario ML", "Igual", "Menor que", "Mayor que", "Identificador", "Keywords", "Tabulacion",
             "Salto de Linea", "Error Lexico", "Error Ahhh"
             ];
-       
+
 
         private int[][] AutomataOrdenProgram =
         [
-            [1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-            [-1,1,2,-1,-1,-1,-1,-1,-1,-1],
-            [-1,2,-1,3,-1,-1,-1,-1,-1,-1],
-            [-1,3,3,4,4,-1,-1,-1,-1,-1],
-            [-1,4,-1,5,4,5,-1,-1,-1,4],
+            [1,-1,-1,-1,-1,-1,-1,-1,-1,-1], //keyword program
+            [-1,1,2,-1,-1,-1,-1,-1,-1,-1], // identificador
+            [-1,2,-1,3,-1,-1,-1,-1,-1,-1], //Punto y Coma
+            [-1,3,3,4,4,-1,-1,-1,-1,-1], // keyword begin
+            [-1,4,-1,5,4,5,-1,-1,-1,4],// keyword begin
             [-1,5,5,5,5,-1,5,6,-1,5],
             [-1,-1,-1,-1,-1,-1,-1,-1,7,-1],
 
@@ -107,11 +128,11 @@ namespace AnalizadorPascal
             "do", "if", "object", "set", "uses", "downto", "implementation",
             "of", "shl", "var", "else", "in", "on", "shr", "while", "end",
             "inherited", "or", "string", "with", "exports", "inline", "xor",
-            "interface", "interrupt", "is", "writeln", "write"
+            "interface", "interrupt", "is", "writeln", "write", "Integer", "Real", "String", "Char", "Boolean"
             ];
         private int[] lineAuto; 
-        private string palabra; 
-        private int j;
+        private string palabra;
+        private int lastPosition;
         public bool isCorrectWrite = true;
         public bool isCorrectOrden = true;
 
@@ -121,20 +142,41 @@ namespace AnalizadorPascal
 
             lineAuto = Automatas[0];
             palabra = "";
-            j = -1;
+            lastPosition = -1;
         }
         public int GetIndex(string item)
         {
-            foreach (var fil in alfabeto.Select((C, i) => new { C, i }))
-            {
-                if (Regex.IsMatch(item, fil.C))
-                {
-                    Debug.WriteLine($"  -> {item} == {(int)char.Parse(item)}  || {fil.i}");
+            char c = item[0];
 
-                    return fil.i;
-                }
-            }
-            return alfabeto.Count()-1;
+            if (c >= '0' && c <= '9') return 0;
+            if (c >= 'A' && c <= 'Z') return 2;
+            if (c >= 'a' && c <= 'z') return 3;
+            if (c == (char)10 || c == (char)13) return 22;
+
+            return c switch
+            {
+                '\'' => 1,
+                ' ' => 4,
+                '_' => 5,
+                ':' => 6,
+                '=' => 7,
+                ';' => 8,
+                ',' => 9,
+                '.' => 10,
+                '(' => 11,
+                ')' => 12,
+                '[' => 13,
+                ']' => 14,
+                '+' => 15,
+                '-' => 16,
+                '*' => 17,
+                '/' => 18,
+                '<' => 19,
+                '>' => 20,
+                (char)9 => 21,
+                _ => alfabeto.Count(),
+            };
+        
         }
         public int GetIndexM(DatoTabla item)
         {
@@ -168,44 +210,31 @@ namespace AnalizadorPascal
         public void reload(ref int i, ref string item,  bool isretry = false)
         {
             
-            Console.WriteLine($"<--{j}   {i}-->");
+            Console.WriteLine($"<--{lastPosition}   {i}-->");
             lineAuto = Automatas[0];
-            if(j != i)
+            if(lastPosition != i)
             {
                 if (isretry)
                 {
-                    j = i;
+                    lastPosition = i;
 
                     palabra = palabra.Substring(0, palabra.Length - 1);
                     --i;
                 }
                 else
                 {
-                    j = i;
+                    lastPosition = i;
 
                 }
             }
             else
             {
 
-                j = i;
+                lastPosition = i;
             }
 
             Console.WriteLine($"--{palabra}--");
 
-
-            /*
-                        lineAuto = Automatas[0];
-                        if (j == i)
-                        {
-                            palabra = "";
-
-                        }
-                        else
-                        {
-                            
-
-                        }*/
         }
         public List<DatoTabla> list = new List<DatoTabla>();
         public async Task<List<DatoTabla>> GetGeneratorDataT(string codePas = null)
@@ -221,17 +250,13 @@ namespace AnalizadorPascal
             for ( int i = 0; i< CodePascal.Count(); i++)
             {
                 string item = CodePascal.Substring(i,1) ;
+                var pos = GetIndex(item);
+                index = lineAuto[pos];
+
                 
-                index = lineAuto[GetIndex(item)];
 
-                if (index == 40 && lineAuto[GetIndex(CodePascal.Substring((i+1>= CodePascal.Count() ? CodePascal.Count()-1 : i+1 ), 1))] != 40)
-                {
-
-                    continue;
-                }
-
-                Console.WriteLine($"tokens{i} " + index + "  " + string.Join(",", lineAuto) + " " + Automatas.Count() + " " + item + " " + GetIndex(item));
-                lineAuto = Automatas[index];
+                Console.WriteLine($"tokens {i} " + index + "  " + string.Join(",", lineAuto) + " " + Automatas.Count() + " " + item + " " + pos + " " + ((int)item.ToCharArray()[0]));
+            lineAuto = Automatas[index];
 
                 palabra += item.ToString();
                
@@ -418,15 +443,15 @@ namespace AnalizadorPascal
                 }
                 else if (index == 15)
                 {//error lexico
-                    reload(ref i, ref item, true);
+                    reload(ref i, ref item, false);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.ERROR_a)] });
                     palabra = "";
                     isCorrectWrite = false;
                     continue;
                 }
                 else if (index == 45)
-                {//error de 404
-                    reload(ref i, ref item, true);
+                {//error de 
+                    reload(ref i, ref item, false);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.ERROR_b)] });
                     palabra = "";
                     isCorrectWrite = false;
@@ -436,37 +461,50 @@ namespace AnalizadorPascal
                 
 
             }
-            
-            
-            
-            j = 0;
+
+
+
+            lastPosition = 0;
             index = 0;
-            var line = AutomataOrdenProgram[j];
+            var line = AutomataOrdenProgram[lastPosition];
             isCorrectOrden = false;
             foreach (var item in list)
             {
-                j = GetIndexM(item);
-                Console.Write($"line = {string.Join(",", line)}; item = {orden[j]}, j = {j}; {item.caracter}  ");
+                lastPosition = GetIndexM(item);
+                Console.Write($"line = {string.Join(",", line)}; item = {orden[lastPosition]}, j = {lastPosition}; {item.caracter}  ");
 
-                if (j == 7) { isCorrectOrden = true; break; }
+                if (lastPosition == 7) { isCorrectOrden = true; break; }
 
-                if (j == -1)
+                if (lastPosition == -1)
                 {
+                    seterror(list.IndexOf(item));
                     break;
                 }
-                index = line[j];
+                index = line[lastPosition];
 
                 Console.WriteLine(index);
                 if (index == -1)
                 {
+                    seterror(list.IndexOf(item));
                     break;
                 }
                 
                 line = AutomataOrdenProgram[index];
             }
             
+            
             Console.WriteLine(isCorrectOrden);
             return list;
+        }
+
+        private void seterror(int v)
+        {
+            for (int i = v; i < list.Count(); i++)
+            {
+                var let = list[v];
+                let.tipo = tt[(int)tipo.ERROR_a];
+                list[v] = let;
+            }
         }
     }
 }

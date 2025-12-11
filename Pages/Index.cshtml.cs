@@ -116,12 +116,12 @@ namespace AnalizadorPascal.Pages
                                     esta {(ana.isCorrectOrden ? "bien" : "mal")} ordenado");
             //TempData[""] = JsonSerializer.Serialize(DataT).ToString()
             int NErrores = ana.list.Where(t => t.tipo == "Error Lexico" || t.tipo == "Error Ahhh").Count();
-            int indexi = (int)Math.Ceiling(NErrores / 3.0) >= urlImage.Count() ? urlImage.Count()-1 : (int)Math.Ceiling(NErrores / 3.0);
-            string textcode = string.Join("", ana.list.Select((t) => 
-            (t.tokens == "40" ? "<br />" : 
-                (t.tokens == "45" || t.tokens == "15" ? $"<label  style=\"background-color:red\">{t.caracter}</label>" : 
-                    t.caracter))
-            ));
+            int indexi = (int)Math.Ceiling(NErrores / 3.0) >= urlImage.Count() ? urlImage.Count() - 1 : (int)Math.Ceiling(NErrores / 3.0);
+            string textcode = string.Join("", ana.list.Select((t) =>
+            (t.tipo == tipo.SL.ToString() ? "<br />" :
+               (t.tipo.Contains("Error") ? $"<label  style=\"background-color:red\">{t.caracter}</label>" :
+                    t.caracter)
+            )));
            
             TempData["Meme"] = $@"
                     <img src=""{urlImage[indexi]}"" style=""width:50%""/>
