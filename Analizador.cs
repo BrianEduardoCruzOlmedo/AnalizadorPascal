@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Dynamic;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
@@ -106,19 +107,15 @@ namespace AnalizadorPascal
 
         private int[][] AutomataOrdenProgram =
         [
-            [1,-1,-1,-1,-1,-1,-1,-1,-1,-1], //keyword program
-            [-1,1,2,-1,-1,-1,-1,-1,-1,-1], // identificador
-            [-1,2,-1,3,-1,-1,-1,-1,-1,-1], //Punto y Coma
-            [-1,3,3,4,4,-1,-1,-1,-1,-1], // keyword begin
-            [-1,4,-1,5,4,5,-1,-1,-1,4],// keyword begin
-            [-1,5,5,5,5,-1,5,6,-1,5],
-            [-1,-1,-1,-1,-1,-1,-1,-1,7,-1],
-
+            [ 1, 0, 0, 0,-1, 0,-1, 0], //keyword program
+            [-1 ,1, 2,-1,-1,-1,-1,-1], //identificador
+            [-1, 2,-1,3,-1,-1,-1,-1], //Punto y Coma
+            [-1, 3, 3, 3, 4, 3,-1, 3], //keyword begin
+            [-1, 4, 4, 4,-1, 5, 4, 4], // end
         ];
 
         private List<string> orden = [
-            "program", "$Espacio", "$Identificador", "$Punto y Coma", "$$", "begin", "$$",
-            "end", "$Punto"
+              "program", "$Espacio", "$Identificador", "$Punto y Coma", "begin", "end", "$Punto", "$$"
             ];
         private List<string> keywords = [
             "and", "case", "file", "label", "packed", "then", "array", "const",
@@ -190,11 +187,11 @@ namespace AnalizadorPascal
                 }
                 if (fil.C[0] == '$')
                 {
-                    if(fil.C.Substring(1, fil.C.Length -1) == item.tipo)
+                    if(fil.C.Substring(1) == item.tipo)
                     {
                         return fil.i;
                     }
-                    if (fil.C[1] == '$')
+                    if (fil.C.Substring(1)[0] == '$')
                     {
                         if (!new List<string> { "program", "begin", "end" }.Contains(item.caracter))
                         {
@@ -216,25 +213,13 @@ namespace AnalizadorPascal
             {
                 if (isretry)
                 {
-                    lastPosition = i;
-
                     palabra = palabra.Substring(0, palabra.Length - 1);
                     --i;
                 }
-                else
-                {
-                    lastPosition = i;
-
-                }
             }
-            else
-            {
-
                 lastPosition = i;
-            }
-
+            
             Console.WriteLine($"--{palabra}--");
-
         }
         public List<DatoTabla> list = new List<DatoTabla>();
         public async Task<List<DatoTabla>> GetGeneratorDataT(string codePas = null)
@@ -256,7 +241,7 @@ namespace AnalizadorPascal
                 
 
                 Console.WriteLine($"tokens {i} " + index + "  " + string.Join(",", lineAuto) + " " + Automatas.Count() + " " + item + " " + pos + " " + ((int)item.ToCharArray()[0]));
-            lineAuto = Automatas[index];
+                lineAuto = Automatas[index];
 
                 palabra += item.ToString();
                
@@ -466,44 +451,56 @@ namespace AnalizadorPascal
 
             lastPosition = 0;
             index = 0;
-            var line = AutomataOrdenProgram[lastPosition];
+            var line = AutomataOrdenProgram[0];
             isCorrectOrden = false;
             foreach (var item in list)
             {
                 lastPosition = GetIndexM(item);
-                Console.Write($"line = {string.Join(",", line)}; item = {orden[lastPosition]}, j = {lastPosition}; {item.caracter}  ");
+                Console.Write($"line = {string.Join(",", line)}; item = {orden[lastPosition]}, j = {lastPosition}; {item.caracter} ");
 
-                if (lastPosition == 7) { isCorrectOrden = true; break; }
 
                 if (lastPosition == -1)
                 {
-                    seterror(list.IndexOf(item));
+                    lastPosition = list.IndexOf(item);
+                    if (index == 0)
+                    {
+                        lastPosition = 0;
+                    }
                     break;
                 }
                 index = line[lastPosition];
+                if (index == 5) { isCorrectOrden = true; break; }
 
                 Console.WriteLine(index);
                 if (index == -1)
                 {
-                    seterror(list.IndexOf(item));
+                    lastPosition = list.IndexOf(item);
+                    int columna = Array.IndexOf(AutomataOrdenProgram, line);
+                    if (columna == 0)
+                    {
+                        lastPosition = 0;
+                    }
                     break;
-                }
+                } 
                 
                 line = AutomataOrdenProgram[index];
             }
-            
-            
+
+            if (!isCorrectOrden )
+            {
+                await seterror(lastPosition);
+            }
             Console.WriteLine(isCorrectOrden);
             return list;
         }
 
-        private void seterror(int v)
+        private async Task seterror(int v)
         {
             for (int i = v; i < list.Count(); i++)
             {
-                var let = list[v];
-                let.tipo = tt[(int)tipo.ERROR_a];
-                list[v] = let;
+                var let = new DatoTabla { tokens = $"{list[i].tokens}", caracter = list[i].caracter, tipo = tt[(int)tipo.ERROR_a] };
+               list[i] = let;
+                
             }
         }
     }

@@ -118,7 +118,7 @@ namespace AnalizadorPascal.Pages
             int NErrores = ana.list.Where(t => t.tipo == "Error Lexico" || t.tipo == "Error Ahhh").Count();
             int indexi = (int)Math.Ceiling(NErrores / 3.0) >= urlImage.Count() ? urlImage.Count() - 1 : (int)Math.Ceiling(NErrores / 3.0);
             string textcode = string.Join("", ana.list.Select((t) =>
-            (t.tipo == tipo.SL.ToString() ? "<br />" :
+            (t.tokens == "40" ? "<br />" :
                (t.tipo.Contains("Error") ? $"<label  style=\"background-color:red\">{t.caracter}</label>" :
                     t.caracter)
             )));
