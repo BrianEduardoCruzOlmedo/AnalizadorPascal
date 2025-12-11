@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.Drawing;
 using System.Dynamic;
 using System.Linq;
 using System.Reflection;
@@ -10,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace AnalizadorPascal
 {
-    public enum tipo { NumE, NumR, Lit, Esp, GnBajo, Asig, PC, C, P, PI, PF, CA, CC, Sum, Menos, Mul, Div, ComSL, ComMl, Igual, Me, Ma, Var, Key, Tab, SL, ERROR_a, ERROR_b };
+    public enum tipo { NumE, NumR, Lit, Esp, GnBajo, Asig, PC, C, P, PI, PF, CA, CC, Sum, Menos, Mul, Div, ComSL, ComMl, Igual, Me, Ma, Var, Key, Tab, SL, ERROR_a, ERROR_b, twoPuntos };
 
     public class DatoTabla
     {
@@ -35,7 +36,7 @@ namespace AnalizadorPascal
             [9,10,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,15,45],
             [9,10,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,15,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
-            [0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 45],
+            [0, 0, 12, 12, 12, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45],
@@ -101,21 +102,48 @@ namespace AnalizadorPascal
             "Numero Entero", "Numero Real", "Literales", "Espacio", "Guion bajo", "Asignacion", "Punto y Coma", "Coma", "Punto",
             "Parentesis Inicio", "Parentesis Cerrado", "Corchete Abierto", "Corchete Cerrado", "Suma", "Menos",
             "Multiplicacion", "Division", "Comentario SL", "Comentario ML", "Igual", "Menor que", "Mayor que", "Identificador", "Keywords", "Tabulacion",
-            "Salto de Linea", "Error Lexico", "Error Ahhh"
+            "Salto de Linea", "Error Lexico", "Error Ahhh", "2 puntos"
             ];
 
 
         private int[][] AutomataOrdenProgram =
         [
-            [ 1, 0, 0, 0,-1, 0,-1, 0], //keyword program
-            [-1 ,1, 2,-1,-1,-1,-1,-1], //identificador
-            [-1, 2,-1,3,-1,-1,-1,-1], //Punto y Coma
-            [-1, 3, 3, 3, 4, 3,-1, 3], //keyword begin
-            [-1, 4, 4, 4,-1, 5, 4, 4], // end
+            [1,0,0,-1,-1,0,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                        ,
+            [-1,1,2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                     ,
+            [-1,2,2,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                      ,
+            [-1,3,-1,-1,2,4,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                      ,
+            [-1,4,5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                     ,
+            [-1,5,5,-1,-1,-1,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                      ,
+            [-1,7,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                        ,
+            [-1,7,-1,8,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                     ,
+            [-1,8,-1,-1,-1,9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                     ,
+            [-1,9,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                        ,
+            [-1,10,10,-1,-1,10,-1,11,-1,-1,18,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,11,12,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,12,12,13,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,13,-1,-1,-1,-1,-1,-1,14,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,14,-1,-1,-1,-1,-1,-1,-1,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,15,-1,-1,-1,16,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,16,17,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,17,17,13,-1,-1,-1,-1,-1,-1,18,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,18,19,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,19,19,20,-1,19,-1,-1,-1,-1,-1,-1,-1,23,23,-1,-1,26,-1,19]                                                       ,
+            [-1,20,-1,-1,-1,-1,-1,-1,-1,-1,-1,21,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,21,-1,22,-1,-1,-1,-1,-1,-1,-1,-1,22,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,22,-1,-1,-1,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,24,-1,-1,-1,-1]                                                       ,
+            [-1,24,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,25,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,25,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,22,-1,-1,-1]                                                       ,
+            [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,27,-1]                                                       ,
+            [-1,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27]
+
         ];
 
         private List<string> orden = [
-              "program", "$Espacio", "$Identificador", "$Punto y Coma", "begin", "end", "$Punto", "$$"
+            "uses", "$Espacio", "$Salto de Linea", "$Identificador",
+            "$Coma", "$Punto y Coma", "program", "var", "2 puntos", "Tipo",
+            "begin", "$Asignacion", "valor", "write", "writeln", "(", ")",
+            "end", "$Punto", "$$"
             ];
         private List<string> keywords = [
             "and", "case", "file", "label", "packed", "then", "array", "const",
@@ -181,6 +209,13 @@ namespace AnalizadorPascal
             {
                // if(item.caracter == "end") Console.Write($"fil = {fil.C}; itemc = {item.caracter}, itemt {item.tipo} \t");
 
+                if(fil.C == "valor")
+                {
+                    if (tt.Where((t, i) => i < 3).ToList().Contains(item.tipo))
+                    {
+                        return fil.i;
+                    }
+                }
                 if (fil.C == item.caracter)
                 {
                     return fil.i ;
@@ -197,8 +232,6 @@ namespace AnalizadorPascal
                         {
                             return fil.i;
                         }
-                            
-
                     }
                 }
             }
@@ -228,7 +261,6 @@ namespace AnalizadorPascal
             int index = 0;
             if (codePas != null) CodePascal = codePas + $"{(char)13}";
 
-
             isCorrectWrite = true;
             Console.WriteLine(CodePascal.Count());
             bool isfirst = true;
@@ -238,7 +270,6 @@ namespace AnalizadorPascal
                 var pos = GetIndex(item);
                 index = lineAuto[pos];
 
-                
 
                 Console.WriteLine($"tokens {i} " + index + "  " + string.Join(",", lineAuto) + " " + Automatas.Count() + " " + item + " " + pos + " " + ((int)item.ToCharArray()[0]));
                 lineAuto = Automatas[index];
@@ -258,7 +289,6 @@ namespace AnalizadorPascal
                     reload(ref i, ref item, true);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.NumR)] });
                     palabra = "";
-
                     continue;
                 }
                 else if (index == 10)
@@ -266,16 +296,18 @@ namespace AnalizadorPascal
                     reload(ref i, ref item);
                     list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Lit)] });
                     palabra = "";
-
                     continue;
                 }
                 else if (index == 12)
                 {// asignacion
-                    reload(ref i, ref item);
-                    list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Asig)] });
+
+                    var asig = palabra.Contains(":=");
+                    reload(ref i, ref item, !asig);
+                    list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[asig ? ((int)tipo.Asig) : ((int)tipo.twoPuntos)] });
                     palabra = "";
                     continue;
                 }
+                
                 else if (index == 13)
                 {//punto y goma
                     reload(ref i, ref item);
@@ -443,8 +475,7 @@ namespace AnalizadorPascal
                     continue;
                 }
                 
-                
-
+ 
             }
 
 
@@ -459,6 +490,7 @@ namespace AnalizadorPascal
                 Console.Write($"line = {string.Join(",", line)}; item = {orden[lastPosition]}, j = {lastPosition}; {item.caracter} ");
 
 
+               
                 if (lastPosition == -1)
                 {
                     lastPosition = list.IndexOf(item);
@@ -469,7 +501,7 @@ namespace AnalizadorPascal
                     break;
                 }
                 index = line[lastPosition];
-                if (index == 5) { isCorrectOrden = true; break; }
+                if (index == 27) { isCorrectOrden = true; break; }
 
                 Console.WriteLine(index);
                 if (index == -1)
@@ -488,6 +520,7 @@ namespace AnalizadorPascal
 
             if (!isCorrectOrden )
             {
+                // si el profesor varela no le llega gustar que todo este en rojo comenta este metodo asyncrono
                 await seterror(lastPosition);
             }
             Console.WriteLine(isCorrectOrden);
