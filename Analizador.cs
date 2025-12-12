@@ -9,15 +9,20 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-
+using Microsoft.CodeAnalysis.CSharp.Scripting;
 namespace AnalizadorPascal
 {
-    public enum tipo { NumE, NumR, Lit, Esp, GnBajo, Asig, PC, C, P, PI, PF, CA, CC, Sum, Menos, Mul, Div, ComSL, ComMl, Igual, Me, Ma, Var, Key, Tab, SL, ERROR_a, ERROR_b, twoPuntos };
+    public enum tipo { NumE, NumR, Char, String, Esp, GnBajo, Asig, PC, C, P, PI, PF, CA, CC, Sum, Menos, Mul, Div, ComSL, ComMl, Igual, Me, Ma, Var, Key, Tab, SL, ERROR_a, ERROR_b, twoPuntos };
 
     public class DatoTabla
     {
         public string tokens { get; set; }
         public string caracter { get; set; }
+        public string tipo { get; set; }
+    }
+    public class tipoIdentificador
+    {
+        public string valor { get; set; }
         public string tipo { get; set; }
     }
     public class Analizador
@@ -100,7 +105,7 @@ namespace AnalizadorPascal
         ];
 
         private List<string> tt = [
-            "Numero Entero", "Numero Real", "Literales", "Espacio", "Guion bajo", "Asignacion", "Punto y Coma", "Coma", "Punto",
+            "Numero Entero", "Numero Real", "Char", "String", "Espacio", "Guion bajo", "Asignacion", "Punto y Coma", "Coma", "Punto",
             "Parentesis Inicio", "Parentesis Cerrado", "Corchete Abierto", "Corchete Cerrado", "Suma", "Menos",
             "Multiplicacion", "Division", "Comentario SL", "Comentario ML", "Igual", "Menor que", "Mayor que", "Identificador", "Keywords", "Tabulacion",
             "Salto de Linea", "Error Lexico", "Error Ahhh", "2 puntos"
@@ -109,10 +114,15 @@ namespace AnalizadorPascal
             "Numero Entero", "Numero Real", "Char", "String", "Corchete Abierto", "Corchete Cerrado", "Suma", "Menos",
             "Multiplicacion", "Division", "Menor que", "Mayor que",
             ];
-            ];
-            ];
-            ];
 
+        private Dictionary<string, List<string>> tipovalorEsperado =
+        new Dictionary<string, List<string>>
+        {
+            { "Integer", new List<string> { "Integer" } },
+            { "Real", new List<string> { "Real", "Integer" } },
+            { "Char", new List<string> { "Char" } },
+            { "String", new List<string> { "String", "Char" } }
+        };
 
         private int[][] AutomataOrdenProgram =
         [
@@ -138,9 +148,9 @@ namespace AnalizadorPascal
             [-1,19,19,20,-1,19,-1,-1,-1,-1,-1,-1,-1,23,23,-1,-1,26,-1,19]                                                       ,
             [-1,20,-1,-1,-1,-1,-1,-1,-1,-1,-1,21,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
             [-1,21,-1,22,-1,-1,-1,-1,-1,-1,-1,-1,22,-1,-1,-1,-1,-1,-1,-1]                                                       ,
-            [-1,22,-1,-1,-1,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,22,-1,22,-1,18,-1,-1,-1,-1,-1,-1,22,-1,-1,-1,-1,-1,-1,21]                                                       ,
             [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,24,-1,-1,-1,-1]                                                       ,
-            [-1,24,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,25,-1,-1,-1,-1,-1,-1,-1]                                                       ,
+            [-1,24,-1,25,-1,-1,-1,-1,-1,-1,-1,-1,25,-1,-1,-1,-1,-1,-1,-1]                                                       ,
             [-1,25,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,22,-1,-1,-1]                                                       ,
             [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,27,-1]                                                       ,
             [-1,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27]
@@ -163,7 +173,7 @@ namespace AnalizadorPascal
             "inherited", "or", "string", "with", "exports", "inline", "xor",
             "interface", "interrupt", "is", "writeln", "write", "Integer", "Real", "String", "Char", "Boolean"
             ];
-        private int[] lineAuto; 
+        private int[] lineAuto;
         private string palabra;
         private int lastPosition;
         public bool isCorrectWrite = true;
@@ -171,7 +181,7 @@ namespace AnalizadorPascal
 
         public Analizador(string codePascal)
         {
-            CodePascal = codePascal+ $"{(char)13}";
+            CodePascal = codePascal + $"{(char)13}";
 
             lineAuto = Automatas[0];
             palabra = "";
@@ -209,47 +219,38 @@ namespace AnalizadorPascal
                 (char)9 => 21,
                 _ => alfabeto.Count(),
             };
-        
+
         }
-        public Dictionary<string, string> variables = new Dictionary<string, string>();
+        public Dictionary<string, tipoIdentificador> variables = new Dictionary<string, tipoIdentificador>();
         public async Task<int> GetIndexM(DatoTabla item)
         {
             foreach (var fil in orden.Select((C, i) => new { C, i }))
             {
-               // if(item.caracter == "end") Console.Write($"fil = {fil.C}; itemc = {item.caracter}, itemt {item.tipo} \t");
-                if(fil.C == "Tipo")
+                // if(item.caracter == "end") Console.Write($"fil = {fil.C}; itemc = {item.caracter}, itemt {item.tipo} \t");
+                if (fil.C == "Tipo")
                 {
-                    if (new List<String> {  "Integer", "Real", "String", "Char", "Boolean" }.Contains(item.caracter))
+                    if (new List<String> { "Integer", "Real", "String", "Char", "Boolean" }.Contains(item.caracter))
                     {
 
-                        await Asignartipo(list.IndexOf(item),item.caracter);
+                        await Asignartipo(list.IndexOf(item), item.caracter);
                         return fil.i;
                     }
                 }
-                if(fil.C == "valor")
+                if (fil.C == "valor")
                 {
-                    if (tt.Where((t, i) => i < 3).ToList().Contains(item.tipo))
+                    if (tipovalor.Contains(item.tipo))
                     {
-                        if( asignarvalor(list.IndexOf(item), item))
-                        {
-                            return fil.i;
-
-                        }
-                        else if (isWrite(list.IndexOf(item))) {
-
-                            return fil.i;
-                        }
-
+                        return fil.i;
                     }
                 }
-                
+
                 if (fil.C == item.caracter)
                 {
-                    return fil.i ;
+                    return fil.i;
                 }
                 if (fil.C[0] == '$')
                 {
-                    if(fil.C.Substring(1) == item.tipo)
+                    if (fil.C.Substring(1) == item.tipo)
                     {
                         return fil.i;
                     }
@@ -265,45 +266,145 @@ namespace AnalizadorPascal
             return -1;
         }
 
-        private bool asignarvalor(int v, DatoTabla caracter)
+        private async Task asignarvalor(DatoTabla caracter)
         {
-            for (int i = v-1; i >= v - 6; i--)
+            var indexC = list.IndexOf(caracter);
+            if (list[indexC + 1].caracter == ";")
             {
-                var item = list[i];
-                if (item.tipo.Contains( "Identificador"))
+                var init = getinitLine(indexC);
+                if (init != -1)
                 {
-                    if (variables.ContainsKey(item.caracter))
+                    var idenvar = list[init];
+                    if (idenvar.tipo.Contains("Identificador"))
                     {
-                        var tipoesp = variables[item.caracter];
-                        var tipoin = caracter.tipo switch
+                        if (variables.ContainsKey(idenvar.caracter))
                         {
-                            "Numero Entero" => "Integer",
-                            "Numero Real" => "Real",
-                            "Literales" => "String",
-                            _ => default,
-                        };
-                        if (tipoesp != null)
-                        {
-                            return tipoin == tipoesp;
-                            break;
+                            var tipoesp = tipovalorEsperado[variables[idenvar.caracter].tipo];
+                            var isRealizar = isComplete(tipoesp, init + 2, indexC);
+                            if (!isRealizar)
+                            {
+
+                                errorestipo.Add(init);
+                                errorestipo.Add(indexC + 1);
+                            }
+                            else
+                            {
+                                Type tipo = variables[idenvar.caracter].tipo switch
+                                {
+                                    "String" => typeof(char),
+                                    "Char" => typeof(char),
+                                    "Real" => typeof(double),
+                                    "Integer" => typeof(int),
+                                };
+                                object resultado = await CSharpScript.EvaluateAsync<object>(getvalor(init + 2, indexC));
+
+                                // Convertir dinámicamente al tipo esperado
+                                variables[idenvar.caracter].valor = (variables[idenvar.caracter].tipo, Convert.ChangeType(resultado, tipo)).ToString();
+                            }
+
+
                         }
                     }
-                    
                 }
             }
-            return false;
+
         }
 
-        private bool isWrite(int v)
+        private string getvalor(int v, int indexC)
         {
-            for (int i = v-1; i >= v-3; i--)
+            var txt = "";
+            for (int i = v; i <= indexC; i++)
             {
-                var item = list[i];
-                if (item.caracter == "(")
+                txt += list[i].caracter;
+            }
+            return txt;
+        }
+        private List<int> errorestipo = new List<int>();
+        private async Task marcarincorret(int init, int last)
+        {
+            for (int i = init; i <= last; i++)
+            {
+                var let = new DatoTabla { tokens = $"{list[i].tokens}", caracter = list[i].caracter, tipo = tt[(int)tipo.ERROR_a] };
+                list[i] = let;
+
+            }
+        }
+
+        private bool isComplete(List<string> tipoesp, int limIn, int limSu)
+        {
+            var lim = 0;
+            for (int j = limIn; j <= limSu; j++)
+            {
+                var valor = list[j];
+
+                var newtipo = tipoesp.Where((t, i) => i >= lim).ToList();
+                if (tt.Where((t, i) => i < 4).ToList().Contains(valor.tipo))
                 {
-                    return true;
+
+                    var tipoin = valor.tipo switch
+                    {
+                        "Numero Entero" => "Integer",
+                        "Numero Real" => "Real",
+                        "Char" => "Char",
+                        "String" => "String",
+                        _ => default,
+                    };
+                    lim = newtipo.IndexOf(tipoin);
+                    if (lim == -1)
+                    {
+                        return false;
+                    }
+                    if (!newtipo.Contains(tipoin))
+                    {
+                        return false;
+                    }
+                }
+                else if (valor.tipo == "Identificador")
+                {
+                    if (variables.ContainsKey(valor.caracter))
+                    {
+                        var tipoin = variables[valor.caracter].tipo;
+                        lim = newtipo.IndexOf(tipoin);
+                        if (lim == -1)
+                        {
+                            return false;
+                        }
+                        if (!newtipo.Contains(tipoin))
+                        {
+                            return false;
+                        }
+
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+
+                if (j + 1 <= limSu)
+                {
+                    if (!tt.Where((t, i) => i < 4).ToList().Contains(valor.tipo))
+                    {
+                        j++;
+                    }
                 }
             }
+            return true;
+        }
+
+        private int getinitLine(int indexC)
+        {
+            for (int i = indexC - 1; i >= 0; i--)
+            {
+                var tipo = list[i];
+                if (tipo.tipo == "Salto de Linea")
+                {
+                    return i + 1;
+                }
+            }
+            return -1;
+        }
+
         private void isWrite(DatoTabla dato)
         {
             if (dato != null)
@@ -312,7 +413,7 @@ namespace AnalizadorPascal
                 var next = list[idDato + 1];
                 if (next != null)
                 {
-                    if(list[idDato + 1].caracter == ")" && list[idDato + 2].caracter == ";")
+                    if (list[idDato + 1].caracter == ")" && list[idDato + 2].caracter == ";")
                     {
                         if (dato.tipo == "Identificador")
                         {
@@ -333,28 +434,26 @@ namespace AnalizadorPascal
             }
         }
 
-
-        }
-
         private async Task Asignartipo(int v, string caracter)
         {
-            for(int i = v-1; i >= 0; i--)
+            for (int i = v - 1; i >= 0; i--)
             {
                 var item = list[i];
-                if(item.tipo == "Identificador")
+                if (item.tipo == "Identificador")
                 {
-                    variables[item.caracter] = caracter;
+                    variables[item.caracter] = new tipoIdentificador { tipo = caracter, valor = "" };
                     break;
                 }
             }
         }
-
-        public void reload(ref int i, ref string item,  bool isretry = false)
+        //si quire los sj que se imprimero aki esta
+        public List<string> MSJ = new List<string>();
+        public void reload(ref int i, ref string item, bool isretry = false)
         {
-            
+
             Console.WriteLine($"<--{lastPosition}   {i}-->");
             lineAuto = Automatas[0];
-            if(lastPosition != i)
+            if (lastPosition != i)
             {
                 if (isretry)
                 {
@@ -362,24 +461,25 @@ namespace AnalizadorPascal
                     --i;
                 }
             }
-                lastPosition = i;
-            
+            lastPosition = i;
+
             Console.WriteLine($"--{palabra}--");
         }
         public List<DatoTabla> list = new List<DatoTabla>();
         public async Task<List<DatoTabla>> GetGeneratorDataT(string codePas = null)
         {
             list = new List<DatoTabla>();
-            variables = new Dictionary<string, string>();
+            variables = new Dictionary<string, tipoIdentificador>();
+            errorestipo = new List<int>();
             int index = 0;
             if (codePas != null) CodePascal = codePas + $"{(char)13}";
 
             isCorrectWrite = true;
             Console.WriteLine(CodePascal.Count());
             bool isfirst = true;
-            for ( int i = 0; i< CodePascal.Count(); i++)
+            for (int i = 0; i < CodePascal.Count(); i++)
             {
-                string item = CodePascal.Substring(i,1) ;
+                string item = CodePascal.Substring(i, 1);
                 var pos = GetIndex(item);
                 index = lineAuto[pos];
 
@@ -388,7 +488,7 @@ namespace AnalizadorPascal
                 lineAuto = Automatas[index];
 
                 palabra += item.ToString();
-               
+
 
                 if (index == 2)
                 {
@@ -407,7 +507,10 @@ namespace AnalizadorPascal
                 else if (index == 10)
                 {//literales
                     reload(ref i, ref item);
-                    list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipo.Lit)] });
+                    var la = palabra.LastIndexOf("'");
+                    var inl = palabra.IndexOf("'");
+                    var tipolit = la - inl <= 2 ? tipo.Char : tipo.String;
+                    list.Add(new DatoTabla { tokens = $"{index}", caracter = palabra, tipo = tt[((int)tipolit)] });
                     palabra = "";
                     continue;
                 }
@@ -420,7 +523,7 @@ namespace AnalizadorPascal
                     palabra = "";
                     continue;
                 }
-                
+
                 else if (index == 13)
                 {//punto y goma
                     reload(ref i, ref item);
@@ -587,8 +690,8 @@ namespace AnalizadorPascal
                     isCorrectWrite = false;
                     continue;
                 }
-                
- 
+
+
             }
 
 
@@ -602,8 +705,6 @@ namespace AnalizadorPascal
                 lastPosition = await GetIndexM(item);
                 Console.Write($"line = {string.Join(",", line)}; item = {orden[lastPosition]}, j = {lastPosition}; {item.caracter} ");
 
-
-               
                 if (lastPosition == -1)
                 {
                     lastPosition = list.IndexOf(item);
@@ -612,15 +713,15 @@ namespace AnalizadorPascal
                         lastPosition = 0;
                     }
                     break;
-                if(index == 22)
+                }
+                index = line[lastPosition];
+                if (index == 27) { isCorrectOrden = true; break; }
+                if (index == 22)
                 {
                     asignarvalor(item);
                 }
-                if(index == 25)
+                if (index == 25)
                 {
-                    isWrite(item);
-                }
-                }
                     isWrite(item);
                 }
                 Console.WriteLine(index);
@@ -633,15 +734,23 @@ namespace AnalizadorPascal
                         lastPosition = 0;
                     }
                     break;
-                } 
-                
+                }
+
                 line = AutomataOrdenProgram[index];
             }
 
-            if (!isCorrectOrden )
+            if (!isCorrectOrden)
             {
                 // si el profesor varela no le llega gustar que todo este en rojo comenta este metodo asyncrono
-                await seterror(lastPosition);
+                // await seterror(lastPosition);
+            }
+            if (errorestipo.Count() > 0)
+            {
+                for (int y = 0; y < errorestipo.Count(); y += 2)
+                {
+                    await marcarincorret(errorestipo[y], errorestipo[y + 1]);
+
+                }
             }
             Console.WriteLine(isCorrectOrden);
             return list;
@@ -652,8 +761,8 @@ namespace AnalizadorPascal
             for (int i = v; i < list.Count(); i++)
             {
                 var let = new DatoTabla { tokens = $"{list[i].tokens}", caracter = list[i].caracter, tipo = tt[(int)tipo.ERROR_a] };
-               list[i] = let;
-                
+                list[i] = let;
+
             }
         }
     }
