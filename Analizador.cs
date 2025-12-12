@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.CodeAnalysis.CSharp.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -9,7 +10,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
+using static System.Net.Mime.MediaTypeNames;
 namespace AnalizadorPascal
 {
     public enum tipo { NumE, NumR, Char, String, Esp, GnBajo, Asig, PC, C, P, PI, PF, CA, CC, Sum, Menos, Mul, Div, ComSL, ComMl, Igual, Me, Ma, Var, Key, Tab, SL, ERROR_a, ERROR_b, twoPuntos };
@@ -296,10 +297,15 @@ namespace AnalizadorPascal
                                     "Real" => typeof(double),
                                     "Integer" => typeof(int),
                                 };
-                                object resultado = await CSharpScript.EvaluateAsync<object>(getvalor(init + 2, indexC));
+                                object resultado = await CSharpScript.EvaluateAsync<object>(getvalor(init + 2, indexC, variables[idenvar.caracter].tipo));
+                                var txt = Convert.ChangeType(resultado, tipo).ToString();
+                                if (variables[idenvar.caracter].tipo == "String" || variables[idenvar.caracter].tipo == "Char")
+                                {
+                                    txt = "'" + txt.Replace("'", "") + "'";
 
+                                }
                                 // Convertir dinámicamente al tipo esperado
-                                variables[idenvar.caracter].valor = (variables[idenvar.caracter].tipo, Convert.ChangeType(resultado, tipo)).ToString();
+                                variables[idenvar.caracter].valor = txt;
                             }
                         }
                         else
@@ -314,13 +320,38 @@ namespace AnalizadorPascal
 
         }
 
-        private string getvalor(int v, int indexC)
+        private string getvalor(int v, int indexC, string tipo)
         {
             var txt = "";
             for (int i = v; i <= indexC; i++)
             {
-                txt += list[i].caracter;
+                var palabra = list[i];
+                string caracter = "";
+                if (palabra.tipo.Contains("Identificador"))
+                {
+                    if (variables.ContainsKey(palabra.caracter))
+                    {
+                        var tipoesp = variables[palabra.caracter];
+                        caracter = tipoesp.valor;
+                        if (tipo == "String" && (tipoesp.tipo == "String" || tipoesp.tipo == "Char"))
+                        {
+                            caracter = "\"" + caracter.Replace("\"", "").Replace("'", "") + "\"";
+                        }
+                    }
+                }
+                else
+                {
+                    caracter = palabra.caracter;
+                    if (tipo == "String" && (palabra.tipo == "String" || palabra.tipo == "Char"))
+                    {
+                        caracter = "\"" + caracter.Replace("\"", "") + "\"";
+                    }
+                }
+
+                txt += caracter;
+
             }
+            
             return txt;
         }
         private List<int> errorestipo = new List<int>();
@@ -353,7 +384,8 @@ namespace AnalizadorPascal
                         "String" => "String",
                         _ => default,
                     };
-                    lim = newtipo.IndexOf(tipoin);
+                    /// si en caso que tengan que agregar 
+                    //lim = newtipo.IndexOf(tipoin);
                     if (lim == -1)
                     {
                         return false;
@@ -416,6 +448,8 @@ namespace AnalizadorPascal
                 var tipowrite = list[list.IndexOf(dato) - 2].caracter;
                 var idDato = list.IndexOf(dato);
                 var next = list[idDato + 1];
+                // mdo de salto 
+                var issalto = "\n";
                 if (next != null)
                 {
                     if (list[idDato + 1].caracter == ")" && list[idDato + 2].caracter == ";")
@@ -424,13 +458,13 @@ namespace AnalizadorPascal
                         {
                             if (variables.ContainsKey(dato.caracter))
                             {
-                                MSJ.Add(variables[dato.caracter].valor + tipowrite == "write" ? "": "\n");
+                                MSJ.Add(variables[dato.caracter].valor + (tipowrite == "write" ? "" : "issalto"));
 
                             }
                         }
                         else
                         {
-                            MSJ.Add(dato.caracter);
+                            MSJ.Add(dato.caracter +( tipowrite == "write" ? "" : "issalto"));
 
                         }
                     }

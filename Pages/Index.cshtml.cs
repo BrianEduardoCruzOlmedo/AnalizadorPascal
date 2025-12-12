@@ -24,6 +24,9 @@ namespace AnalizadorPascal.Pages
 
         public string StatusMessage { get; set; }
         public List<DatoTabla> DataT { get; set; }
+        
+        public List<string> SalidaWrite { get; set; }
+        public Dictionary<string, tipoIdentificador> SalidaVaribles { get; set; }
         public string Info {  get; set; }
         public string Meme { get; set; }
 
@@ -53,6 +56,14 @@ namespace AnalizadorPascal.Pages
             if (TempData.ContainsKey("Meme"))
             {
                 Meme = (string)TempData["Meme"];
+            }
+            if (TempData.ContainsKey("SalidaWrite"))
+            {
+                SalidaWrite = JsonSerializer.Deserialize<List<string>>(TempData["SalidaWrite"] as string);
+            }
+            if (TempData.ContainsKey("SalidaVaribles"))
+            {
+                SalidaVaribles = JsonSerializer.Deserialize<Dictionary<string, tipoIdentificador>>(TempData["SalidaVaribles"] as string);
             }
 
         }

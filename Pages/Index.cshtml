@@ -60,7 +60,46 @@
         </table>
     }
     <p>@Model.Info</p>
-    <p>salida</p>
-    salsa
-    <p></p>
+    <h3>Salida</h3>
+    @if (Model.SalidaWrite != null && Model.SalidaWrite.Any())
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th>Salida</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.SalidaWrite)
+                {
+                    <tr>
+                        <td>@item.Replace("\"","'")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    <h3>Variables</h3>
+    @if (Model.SalidaVaribles != null && Model.SalidaVaribles.Any())
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>valor</th>
+                    <th>Tipo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.SalidaVaribles)
+                {
+                    <tr>
+                        <td>@item.Key</td>
+                        <td>@Model.SalidaVaribles[item.Key].valor.Replace("\"", "'")</td>
+                        <td>@Model.SalidaVaribles[item.Key].tipo</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
