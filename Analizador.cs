@@ -304,7 +304,13 @@ namespace AnalizadorPascal
 
 
                         }
+                        else
+                        {
+                            errorestipo.Add(init);
+                            errorestipo.Add(indexC + 1);
+                        }
                     }
+                    
                 }
             }
 
