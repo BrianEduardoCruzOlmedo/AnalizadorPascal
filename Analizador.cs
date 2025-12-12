@@ -400,7 +400,7 @@ namespace AnalizadorPascal
                     if (variables.ContainsKey(valor.caracter))
                     {
                         var tipoin = variables[valor.caracter].tipo;
-                        lim = newtipo.IndexOf(tipoin);
+                        //lim = newtipo.IndexOf(tipoin);
                         if (lim == -1)
                         {
                             return false;
@@ -458,13 +458,13 @@ namespace AnalizadorPascal
                         {
                             if (variables.ContainsKey(dato.caracter))
                             {
-                                MSJ.Add(variables[dato.caracter].valor + (tipowrite == "write" ? "" : "issalto"));
+                                MSJ.Add(variables[dato.caracter].valor + (tipowrite == "write" ? "" : issalto));
 
                             }
                         }
                         else
                         {
-                            MSJ.Add(dato.caracter +( tipowrite == "write" ? "" : "issalto"));
+                            MSJ.Add(dato.caracter +( tipowrite == "write" ? "" : issalto));
 
                         }
                     }
