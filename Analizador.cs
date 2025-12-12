@@ -105,6 +105,13 @@ namespace AnalizadorPascal
             "Multiplicacion", "Division", "Comentario SL", "Comentario ML", "Igual", "Menor que", "Mayor que", "Identificador", "Keywords", "Tabulacion",
             "Salto de Linea", "Error Lexico", "Error Ahhh", "2 puntos"
             ];
+        private List<string> tipovalor = [
+            "Numero Entero", "Numero Real", "Char", "String", "Corchete Abierto", "Corchete Cerrado", "Suma", "Menos",
+            "Multiplicacion", "Division", "Menor que", "Mayor que",
+            ];
+            ];
+            ];
+            ];
 
 
         private int[][] AutomataOrdenProgram =
@@ -297,7 +304,36 @@ namespace AnalizadorPascal
                     return true;
                 }
             }
-            return false;
+        private void isWrite(DatoTabla dato)
+        {
+            if (dato != null)
+            {
+                var idDato = list.IndexOf(dato);
+                var next = list[idDato + 1];
+                if (next != null)
+                {
+                    if(list[idDato + 1].caracter == ")" && list[idDato + 2].caracter == ";")
+                    {
+                        if (dato.tipo == "Identificador")
+                        {
+                            if (variables.ContainsKey(dato.caracter))
+                            {
+                                MSJ.Add(variables[dato.caracter].valor);
+
+                            }
+                        }
+                        else
+                        {
+                            MSJ.Add(dato.caracter);
+
+                        }
+                    }
+                }
+
+            }
+        }
+
+
         }
 
         private async Task Asignartipo(int v, string caracter)
@@ -576,10 +612,17 @@ namespace AnalizadorPascal
                         lastPosition = 0;
                     }
                     break;
+                if(index == 22)
+                {
+                    asignarvalor(item);
                 }
-                index = line[lastPosition];
-                if (index == 27) { isCorrectOrden = true; break; }
-
+                if(index == 25)
+                {
+                    isWrite(item);
+                }
+                }
+                    isWrite(item);
+                }
                 Console.WriteLine(index);
                 if (index == -1)
                 {

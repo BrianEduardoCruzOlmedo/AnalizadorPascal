@@ -112,6 +112,13 @@ namespace AnalizadorPascal.Pages
             //  Debug.WriteLine("- " + JsonSerializer.Serialize(ana.GetGeneratorDataT()) + " -");
             TempData["CodePascal"] = PascalCode;
             TempData["DataT"] = JsonSerializer.Serialize(await ana.GetGeneratorDataT());
+            //
+            //
+            TempData["SalidaWrite"] = JsonSerializer.Serialize(ana.MSJ);
+            TempData["SalidaVaribles"] = JsonSerializer.Serialize(ana.variables);
+            //
+            //
+
             TempData["Info"] = ($@"El programa esta {(ana.isCorrectWrite ? "bien" : "mal")} escrito y 
                                     esta {(ana.isCorrectOrden ? "bien" : "mal")} ordenado");
             //TempData[""] = JsonSerializer.Serialize(DataT).ToString()
