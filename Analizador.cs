@@ -291,7 +291,7 @@ namespace AnalizadorPascal
                             {
                                 Type tipo = variables[idenvar.caracter].tipo switch
                                 {
-                                    "String" => typeof(char),
+                                    "String" => typeof(string),
                                     "Char" => typeof(char),
                                     "Real" => typeof(double),
                                     "Integer" => typeof(int),
@@ -409,6 +409,7 @@ namespace AnalizadorPascal
         {
             if (dato != null)
             {
+                var tipowrite = list[list.IndexOf(dato) - 2].caracter;
                 var idDato = list.IndexOf(dato);
                 var next = list[idDato + 1];
                 if (next != null)
@@ -419,7 +420,7 @@ namespace AnalizadorPascal
                         {
                             if (variables.ContainsKey(dato.caracter))
                             {
-                                MSJ.Add(variables[dato.caracter].valor);
+                                MSJ.Add(variables[dato.caracter].valor + tipowrite == "write" ? "": "\n");
 
                             }
                         }
