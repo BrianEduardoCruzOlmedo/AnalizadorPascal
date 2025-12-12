@@ -301,8 +301,6 @@ namespace AnalizadorPascal
                                 // Convertir dinámicamente al tipo esperado
                                 variables[idenvar.caracter].valor = (variables[idenvar.caracter].tipo, Convert.ChangeType(resultado, tipo)).ToString();
                             }
-
-
                         }
                         else
                         {
